@@ -1,9 +1,17 @@
 import { config, fields, collection } from '@keystatic/core';
 
 export default config({
-    storage: {
-        kind: 'cloud',
-    },
+    storage: import.meta.env.PROD
+        ? {
+            kind: 'github',
+            repo: {
+                owner: import.meta.env.PUBLIC_REPO_OWNER || 'longngo',
+                name: import.meta.env.PUBLIC_REPO_NAME || 'portfolio-longngo',
+            },
+        }
+        : {
+            kind: 'local',
+        },
     collections: {
         projects: collection({
             label: 'Projects',
@@ -19,8 +27,10 @@ export default config({
                 }),
                 description: fields.text({ label: 'Description', multiline: true }),
                 category: fields.text({ label: 'Category' }),
-                coverImage: fields.cloudImage({
+                coverImage: fields.image({
                     label: 'Cover Image',
+                    directory: 'public/images/projects',
+                    publicPath: '/images/projects/',
                 }),
                 content: fields.mdx({
                     label: 'Content',
