@@ -1,0 +1,40 @@
+---
+// src/components/ProjectCard.astro
+import { Image } from 'astro:assets';
+import fs from 'node:fs';
+import path from 'node:path';
+
+const { title, description, slug, coverImage, category } = Astro.props;
+
+// Check if image exists to prevent crash
+const publicDir = path.join(process.cwd(), 'public');
+const imagePath = coverImage ? path.join(publicDir, coverImage) : null;
+const imageExists = imagePath && fs.existsSync(imagePath);
+---
+
+<a href={`/projects/${slug}`} class="group block w-full outline-none h-full">
+  <article class="relative w-full h-full aspect-[4/3] rounded-3xl overflow-hidden bg-gray-100 transform transition-all duration-500 ease-[cubic-bezier(0.25,1,0.5,1)] hover:scale-[1.03] hover:shadow-2xl hover:shadow-black/25 ring-1 ring-black/5 group-hover:ring-4 group-hover:ring-white/20">
+    
+    <div class="w-full h-full relative overflow-hidden bg-gray-200">
+      {imageExists ? (
+        <img 
+          src={coverImage} 
+          alt={title} 
+          class="w-full h-full object-cover transition-transform duration-700 ease-[cubic-bezier(0.25,1,0.5,1)] group-hover:scale-105"
+        />
+      ) : (
+        <div class="w-full h-full flex items-center justify-center bg-gray-300 text-gray-500 flex-col gap-2 p-4 text-center">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-12 h-12 opacity-50" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
+            <span class="text-xs font-medium">Image Not Found</span>
+        </div>
+      )}
+      
+      <!-- Vision Pro Style Overlay -->
+      <div class="absolute inset-0 p-5 flex flex-col justify-start bg-gradient-to-b from-black/40 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 ease-out">
+        <h3 class="text-xl font-bold font-display text-white leading-tight drop-shadow-md transform -translate-y-2 group-hover:translate-y-0 transition-transform duration-500 ease-[cubic-bezier(0.25,1,0.5,1)]">
+          {title}
+        </h3>
+      </div>
+    </div>
+  </article>
+</a>

@@ -1,0 +1,46 @@
+---
+import Header from '../components/Header.astro';
+import Footer from '../components/Footer.astro';
+import MetaSEO from '../components/MetaSEO.astro';
+import '../styles/global.css';
+import '@fontsource/zalando-sans';
+import { ClientRouter } from 'astro:transitions';
+import { Image } from 'astro:assets';
+import backgroundImg from '../assets/backgrounds/background.png';
+
+const { title, description } = Astro.props;
+---
+
+<html lang="vi" class="scroll-smooth">
+  <head>
+    <MetaSEO title={title} description={description} />
+    <ClientRouter />
+  </head>
+  <body class="bg-[#8C8C8C] text-white relative overflow-x-hidden min-h-screen font-sans antialiased selection:bg-blue-500 selection:text-white">
+    
+    <!-- Noise Overlay -->
+    <div class="fixed inset-0 z-50 pointer-events-none opacity-[0.05] mix-blend-overlay bg-noise"></div>
+
+    <!-- Background Image -->
+    <div class="fixed inset-0 -z-10 pointer-events-none overflow-hidden">
+        <Image 
+            src={backgroundImg} 
+            alt="Background" 
+            class="w-full h-full object-cover opacity-100"
+            width={1920}
+            height={1080}
+        />
+        <div class="absolute inset-0 bg-black/20 backdrop-blur-[2px]"></div>
+    </div>
+
+    <div class="w-full max-w-[1600px] mx-auto px-4">
+      <Header />
+      
+      <main class="w-full pt-8 pb-12 relative z-10 min-h-screen">
+        <slot /> 
+      </main>
+    </div>
+
+    <Footer />
+  </body>
+</html>
