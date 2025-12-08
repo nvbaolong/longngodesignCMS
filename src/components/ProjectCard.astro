@@ -30,8 +30,9 @@ const imageExists = imagePath && fs.existsSync(imagePath);
       )}
       
       <!-- Vision Pro Style Overlay -->
-      <div class="absolute inset-0 p-5 flex flex-col justify-start bg-gradient-to-b from-black/40 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 ease-out">
-        <h3 class="text-xl font-bold font-display text-white leading-tight drop-shadow-md transform -translate-y-2 group-hover:translate-y-0 transition-transform duration-500 ease-[cubic-bezier(0.25,1,0.5,1)]">
+      <!-- Vision Pro Style Overlay -->
+      <div class="absolute inset-0 p-5 flex flex-col justify-end bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 ease-out">
+        <h3 class="text-xl font-bold font-display text-white leading-tight drop-shadow-md transform translate-y-4 group-hover:translate-y-0 transition-transform duration-500 ease-[cubic-bezier(0.25,1,0.5,1)]">
           {title}
         </h3>
       </div>
