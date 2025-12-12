@@ -11,7 +11,7 @@ import Sidebar from '../components/Sidebar.astro';
     </div>
     
     <div class="flex-1 min-w-0">
-      <div class="glass-panel rounded-3xl p-0 h-full overflow-hidden relative group">
+      <div class="glass-panel rounded-3xl p-0 h-[80vh] lg:h-full overflow-hidden relative group">
         
         <div id="spline-container" class="relative w-full h-full">
             <!-- Loading Container (Spline Viewer) -->
@@ -37,12 +37,18 @@ import Sidebar from '../components/Sidebar.astro';
 </BaseLayout>
 
 <style is:global>
-  /* Lock page scroll and zoom for this specific 3D experience */
-  body, html {
-    overflow: hidden !important;
-    height: 100% !important;
-    overscroll-behavior: none;
-    touch-action: none; /* Disables pinch-zoom on mobile */
+  /* Lock page scroll and zoom for this specific 3D experience ONLY on Desktop */
+  @media (min-width: 1024px) {
+    body, html {
+        overflow: hidden !important;
+        height: 100% !important;
+        overscroll-behavior: none;
+    }
+  }
+  
+  /* On mobile, we allow height to grow so we need scroll, but we can still prevent pinch-zoom */
+  body {
+    touch-action: pan-y; /* Allow vertical scroll, disable pinch zoom */
   }
 </style>
 
