@@ -1,23 +1,40 @@
 ---
 import { Image } from 'astro:assets';
 import logo from '../assets/profile/logo.svg';
+import SearchWidget from './SearchWidget';
+import { getCollection, getEntry } from 'astro:content';
+
+const allProjects = await getCollection('projects');
+const homepageSettings = await getEntry('homepage', 'settings');
+const featuredSlugs = homepageSettings?.data.featuredProjects || [];
+
+const searchProjects = allProjects.map(p => ({
+    title: p.data.title,
+    description: p.data.description,
+    slug: p.slug,
+    coverImage: p.data.coverImage,
+    isFeatured: !featuredSlugs.includes(p.slug) // SUGGEST items NOT on homepage
+}));
+
+// Shuffle for random suggestions (optional, or just take first 3)
+// const suggestions = searchProjects.sort(() => 0.5 - Math.random()).slice(0, 3);
 ---
-<header class="w-full z-50 py-6">
-  <div class="glass-panel w-full rounded-2xl px-3 py-3 flex justify-between items-center relative">
+<header class="w-full z-50 py-6 relative">
+  <div class="glass-panel w-full rounded-2xl px-3 py-3 flex justify-between items-center relative gap-4">
     
     <!-- Left: Logo -->
-    <div class="flex-1 flex justify-start">
-      <a href="/" class="group hover:scale-105 transition-transform">
+    <div class="flex-1 flex justify-start min-w-0">
+      <a href="/" class="group hover:scale-105 transition-transform block">
         <Image src={logo} alt="Long Ngo Logo" class="h-10 w-auto object-contain" />
       </a>
     </div>
 
     <!-- Center: Navigation Pills -->
-    <nav class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 flex items-center gap-1 bg-black/20 backdrop-blur-md rounded-full p-1.5 border border-white/10">
+    <nav class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 flex items-center gap-1 bg-black/20 backdrop-blur-md rounded-full p-1.5 border border-white/10 z-10">
       <a 
         href="/" 
         class:list={[
-          "px-6 py-2 rounded-full text-sm font-medium transition-all duration-300 flex items-center gap-2",
+          "px-3 md:px-6 py-2 rounded-full text-sm font-medium transition-all duration-300 flex items-center gap-2",
           Astro.url.pathname === "/" 
             ? "bg-white text-black shadow-lg shadow-black/5" 
             : "text-white/70 hover:text-white hover:bg-white/10"
@@ -26,22 +43,28 @@ import logo from '../assets/profile/logo.svg';
         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
           <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z" />
         </svg>
-        Home
+        <span class="hidden md:inline">Home</span>
+      </a>
+
+      <a 
+        href="/my-room" 
+        class:list={[
+          "px-3 md:px-6 py-2 rounded-full text-sm font-medium transition-all duration-300 flex items-center gap-2",
+          Astro.url.pathname === "/my-room" 
+            ? "bg-white text-black shadow-lg shadow-black/5" 
+            : "text-white/70 hover:text-white hover:bg-white/10"
+        ]}
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+        </svg>
+        <span class="hidden md:inline">My Room</span>
       </a>
     </nav>
 
     <!-- Right: Search -->
     <div class="flex-1 flex justify-end">
-      <div class="group bg-black/20 backdrop-blur-md border border-white/10 px-4 py-2.5 rounded-full flex items-center gap-3 w-64 hover:bg-white/15 hover:border-white/30 transition-all duration-300 focus-within:bg-white focus-within:border-white focus-within:shadow-lg focus-within:shadow-black/5">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-white/50 group-focus-within:text-black/50 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-        </svg>
-        <input 
-          type="text" 
-          placeholder="Search..." 
-          class="bg-transparent border-none outline-none text-sm text-white placeholder-white/50 w-full group-focus-within:text-black group-focus-within:placeholder-black/50 transition-colors"
-        />
-      </div>
+      <SearchWidget projects={searchProjects} client:load />
     </div>
 
   </div>

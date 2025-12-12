@@ -40,6 +40,16 @@ export default config({
                     ],
                     defaultValue: 'center',
                 }),
+                contentAlignment: fields.select({
+                    label: 'Content Alignment',
+                    description: 'Choose how the content is aligned.',
+                    options: [
+                        { label: 'Center (Default)', value: 'center' },
+                        { label: 'Left Aligned', value: 'left' },
+                        { label: 'Wide Width', value: 'wide' },
+                    ],
+                    defaultValue: 'center',
+                }),
                 content: fields.mdx({
                     label: 'Content',
                     options: {

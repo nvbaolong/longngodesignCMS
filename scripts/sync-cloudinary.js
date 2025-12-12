@@ -4,11 +4,20 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import glob from 'fast-glob';
+import dotenv from 'dotenv';
+
+// Load environment variables
+dotenv.config();
 
 // --- CONFIGURATION ---
-const CLOUD_NAME = 'diy4eubhe';
-const API_KEY = '151696535945977';
-const API_SECRET = '-dBHqIGaAIE-yziOJs0SngnMmfY';
+const CLOUD_NAME = process.env.CLOUDINARY_CLOUD_NAME;
+const API_KEY = process.env.CLOUDINARY_API_KEY;
+const API_SECRET = process.env.CLOUDINARY_API_SECRET;
+
+if (!CLOUD_NAME || !API_KEY || !API_SECRET) {
+    console.error('❌ Missing Cloudinary configuration. Please check your .env file.');
+    process.exit(1);
+}
 
 // Configure Cloudinary
 cloudinary.config({
@@ -25,14 +34,67 @@ const PROJECT_ROOT = path.join(__dirname, '..');
 const IMAGES_DIR = path.join(PROJECT_ROOT, 'public/images/projects');
 const CONTENT_DIR = path.join(PROJECT_ROOT, 'src/content/projects');
 
-async function uploadImage(filePath, projectFolder) {
+async function getCloudinaryResources() {
+    try {
+        console.log('🔍 Fetching existing Cloudinary resources...');
+        let resources = [];
+        let nextCursor = null;
+
+        do {
+            const result = await cloudinary.api.resources({
+                type: 'upload',
+                prefix: 'portfolio-projects/', // Only get images in our folder
+                max_results: 500,
+                next_cursor: nextCursor
+            });
+
+            resources = resources.concat(result.resources);
+            nextCursor = result.next_cursor;
+        } while (nextCursor);
+
+        // Map: public_id -> { bytes, url }
+        const resourceMap = new Map();
+        resources.forEach(res => {
+            resourceMap.set(res.public_id, {
+                bytes: res.bytes,
+                url: res.secure_url
+            });
+        });
+
+        console.log(`📚 Found ${resources.length} existing images on Cloudinary.`);
+        return resourceMap;
+    } catch (error) {
+        console.error('⚠️ Could not fetch Cloudinary resources (might be API permissions). Proceeding with overwrite mode.');
+        return new Map(); // Return empty map to fallback to normal upload
+    }
+}
+
+async function uploadImage(filePath, projectFolder, existingResources) {
     try {
         const fileName = path.basename(filePath, path.extname(filePath));
-        const publicId = `${projectFolder}/${fileName}`; // E.g. behance/coverImage
+        const publicId = `portfolio-projects/${projectFolder}/${fileName}`; // accurate public_id
+
+        const stats = fs.statSync(filePath);
+
+        // Check if exists
+        if (existingResources.has(publicId)) {
+            const remote = existingResources.get(publicId);
+            // Simple check: If file size matches, we skip. 
+            // Better check would be content hash, but size is a good heuristic for speed.
+            if (remote.bytes === stats.size) {
+                console.log(`⏩ Skipped (Already exists): ${path.basename(filePath)}`);
+                return remote.url;
+            }
+        }
 
         const result = await cloudinary.uploader.upload(filePath, {
-            folder: 'portfolio-projects', // Base folder
-            public_id: publicId,          // Subpath: behance/coverImage
+            folder: 'portfolio-projects', // Base folder?
+            // Note: 'folder' param combined with public_id can be tricky.
+            // Best practice: Specify full public_id and no folder if you want precise control, 
+            // OR specify folder and simple filename. 
+            // Let's use public_id directly to match our check logic.
+            public_id: `${projectFolder}/${fileName}`,
+            folder: 'portfolio-projects',
             overwrite: true,
         });
         return result.secure_url;
@@ -43,9 +105,12 @@ async function uploadImage(filePath, projectFolder) {
 }
 
 async function run() {
-    console.log('🚀 Starting Cloudinary Sync (Fixed Structure)...');
+    console.log('🚀 Starting Cloudinary Sync (Smart Detect)...');
 
-    // 1. Find all local images
+    // 1. Get existing map
+    const existingResources = await getCloudinaryResources();
+
+    // 2. Find all local images
     const imageFiles = await glob('**/*.{png,jpg,jpeg,gif,webp}', {
         cwd: IMAGES_DIR,
         absolute: true
@@ -56,11 +121,11 @@ async function run() {
         return;
     }
 
-    console.log(`📸 Found ${imageFiles.length} local images to upload.`);
+    console.log(`📸 Found ${imageFiles.length} local images to process.`);
 
     const urlMapping = new Map();
 
-    // 2. Upload images loop
+    // 3. Upload images loop
     for (const file of imageFiles) {
         const relativePath = path.relative(IMAGES_DIR, file);
         // relativePath is like "behance/coverImage.png"
@@ -77,21 +142,16 @@ async function run() {
             continue;
         }
 
-        console.log(`Uploading: ${relativePath} -> portfolio-projects/${projectFolder}...`);
-        const cloudUrl = await uploadImage(file, projectFolder);
+        // console.log(`Processing: ${relativePath}...`);
+        const cloudUrl = await uploadImage(file, projectFolder, existingResources);
 
         if (cloudUrl) {
             urlMapping.set(publicPath, cloudUrl);
-            console.log(`   ✅ Uploaded -> ${cloudUrl}`);
-
-            // Optional: Delete local file after success?
-            // For safety, let's keep them for now or ask user.
-            // fs.unlinkSync(file); 
         }
     }
 
-    // 3. Update MDX files (Smart Replacement)
-    console.log('📝 Updating MDX content files...');
+    // 4. Update MDX files (Smart Replacement)
+    console.log('📝 Checking MDX content files...');
     const mdxFiles = await glob('*.mdx', { cwd: CONTENT_DIR, absolute: true });
 
     for (const mdxFile of mdxFiles) {
@@ -116,27 +176,28 @@ async function run() {
         if (projectImages.length === 0) continue;
 
         // Replace in content
-        // We look for any URL that ends with the filename (ignoring extension/version variances)
-        // Common patterns: "coverImage: URL", "![alt](URL)"
-
         projectImages.forEach(img => {
             // Regex to find url containing the filename
             // Matches: https://.../cover.png OR /images/.../cover.png OR .../cover.webp
             const regex = new RegExp(`(https?:\\/\\/[^\\s\\)]+|\\/[^\\s\\)]+)\\/${img.nameNoExt}\\.(png|jpg|jpeg|webp|gif)`, 'gi');
 
             if (regex.test(content)) {
-                content = content.replace(regex, img.newUrl);
-                hasChanges = true;
+                // Check if it's ALREADY the same cloud URL to avoid pointless writes
+                const match = content.match(regex);
+                if (match && match[0] !== img.newUrl) {
+                    content = content.replace(regex, img.newUrl);
+                    hasChanges = true;
+                }
             }
         });
 
         if (hasChanges) {
             fs.writeFileSync(mdxFile, content, 'utf-8');
-            console.log(`   ✨ Fixed references in ${path.basename(mdxFile)}`);
+            console.log(`   ✨ Updated references in ${path.basename(mdxFile)}`);
         }
     }
 
-    console.log('🎉 Sync Complete! Images are now on Cloudinary.');
+    console.log('🎉 Sync Complete!');
 }
 
 run();

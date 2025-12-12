@@ -1,0 +1,62 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import Sidebar from '../components/Sidebar.astro';
+---
+
+<BaseLayout title="My Room | Long Ngo" description="Welcome to my virtual 3D workspace.">
+  <div class="flex flex-col lg:flex-row gap-6 h-full">
+    <!-- Sidebar (Hidden on mobile as per standard) -->
+    <div class="hidden lg:block h-full shrink-0">
+        <Sidebar />
+    </div>
+    
+    <div class="flex-1 min-w-0">
+      <div class="glass-panel rounded-3xl p-0 h-full overflow-hidden relative group">
+        
+        <div id="spline-container" class="relative w-full h-full">
+            <!-- Loading Container (Spline Viewer) -->
+            <div id="loading-container" class="absolute inset-0 flex justify-center items-center bg-[#DEF3FF] z-50 text-center">
+                 <!-- Spline Viewer Script -->
+                 <script type="module" src="https://unpkg.com/@splinetool/viewer@1.0.17/build/spline-viewer.js"></script>
+                 <spline-viewer loading-anim-type="spinner-small-light" url="https://prod.spline.design/U412JjYyipDwFtt5/scene.splinecode" class="w-full h-full"></spline-viewer>
+            </div>
+
+            <!-- Main Room Iframe -->
+            <iframe 
+                src='https://my.spline.design/roomanimation-8199f00a7155852a8d42cb23232e972b/' 
+                frameborder='0' 
+                width='100%' 
+                height='100%'
+                class="w-full h-full"
+            ></iframe>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</BaseLayout>
+
+<style is:global>
+  /* Lock page scroll and zoom for this specific 3D experience */
+  body, html {
+    overflow: hidden !important;
+    height: 100% !important;
+    overscroll-behavior: none;
+    touch-action: none; /* Disables pinch-zoom on mobile */
+  }
+</style>
+
+<script>
+    // Hide the loading container after 33.5 seconds as requested
+    setTimeout(function() {
+        const loader = document.getElementById("loading-container");
+        if (loader) {
+            // Add a fade out effect for smoothness before hiding
+            loader.style.transition = "opacity 0.5s ease";
+            loader.style.opacity = "0";
+            setTimeout(() => {
+                loader.style.display = 'none';
+            }, 500);
+        }
+    }, 33500); 
+</script>
