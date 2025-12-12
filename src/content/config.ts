@@ -7,10 +7,18 @@ const projectsCollection = defineCollection({
     description: z.string().optional(),
     category: z.string(),
     coverImage: z.string().optional(),
-    isFeatured: z.boolean().default(false),
+    coverImagePosition: z.string().optional().default('center'),
+  }),
+});
+
+const homepageCollection = defineCollection({
+  type: 'data',
+  schema: z.object({
+    featuredProjects: z.array(z.string()).optional(),
   }),
 });
 
 export const collections = {
   projects: projectsCollection,
+  homepage: homepageCollection,
 };

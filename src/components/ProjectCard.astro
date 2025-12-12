@@ -4,7 +4,7 @@ import { Image } from 'astro:assets';
 import fs from 'node:fs';
 import path from 'node:path';
 
-const { title, description, slug, coverImage, category } = Astro.props;
+const { title, description, slug, coverImage, category, coverImagePosition } = Astro.props;
 
 // Check if image exists to prevent crash
 const publicDir = path.join(process.cwd(), 'public');
@@ -20,6 +20,7 @@ const imageExists = imagePath && fs.existsSync(imagePath);
         <img 
           src={coverImage} 
           alt={title} 
+          style={`object-position: ${coverImagePosition || 'center'}`}
           class="w-full h-full object-cover transition-transform duration-700 ease-[cubic-bezier(0.25,1,0.5,1)] group-hover:scale-105"
         />
       ) : (
@@ -29,7 +30,6 @@ const imageExists = imagePath && fs.existsSync(imagePath);
         </div>
       )}
       
-      <!-- Vision Pro Style Overlay -->
       <!-- Vision Pro Style Overlay -->
       <div class="absolute inset-0 p-5 flex flex-col justify-end bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 ease-out">
         <h3 class="text-xl font-bold font-display text-white leading-tight drop-shadow-md transform translate-y-4 group-hover:translate-y-0 transition-transform duration-500 ease-[cubic-bezier(0.25,1,0.5,1)]">

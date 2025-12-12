@@ -3,19 +3,31 @@
 import BaseLayout from '../layouts/BaseLayout.astro';
 import ProjectCard from '../components/ProjectCard.astro';
 import Sidebar from '../components/Sidebar.astro';
-import { getCollection } from 'astro:content';
+import { getCollection, getEntry } from 'astro:content';
 
 const allProjects = await getCollection('projects');
-const featuredProjects = allProjects.filter(p => p.data.isFeatured);
+const homepageSettings = await getEntry('homepage', 'settings');
+const featuredProjects = homepageSettings?.data.featuredProjects || [];
 
-let recentProjects;
-if (featuredProjects.length > 0) {
-    // Top 8 featured projects
-    recentProjects = featuredProjects.slice(0, 8);
-} else {
-    // Fallback: Limit to 8 projects for the highlights section if there are many
-    recentProjects = allProjects.slice(0, 8);
-}
+// Sort projects based on the featuredProjects array order
+const sortedProjects = [...allProjects].sort((a, b) => {
+  const indexA = featuredProjects.indexOf(a.slug);
+  const indexB = featuredProjects.indexOf(b.slug);
+
+  // If both are in the list, sort by index
+  if (indexA !== -1 && indexB !== -1) {
+    return indexA - indexB;
+  }
+
+  // If only A is in the list, it comes first
+  if (indexA !== -1) return -1;
+  
+  // If only B is in the list, it comes first
+  if (indexB !== -1) return 1;
+
+  // If neither is in the list, keep original order (or sort by date/title if needed)
+  return 0;
+});
 ---
 
 <BaseLayout 
@@ -34,29 +46,35 @@ if (featuredProjects.length > 0) {
         <!-- Section Header -->
         <div class="flex justify-between items-start mb-8">
           <div>
-            <h2 class="text-2xl font-bold font-display text-white mb-2">Portfolio Highlights</h2>
-            <p class="text-white/85 text-sm">A collection of my recent projects.</p>
+            <h2 class="text-2xl font-bold font-display text-white mb-2">My Works</h2>
+            <p class="text-white/85 text-sm">A collection of my projects.</p>
           </div>
           
-          <a href="/projects" class="px-6 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/10 text-white text-sm font-medium transition-all flex items-center gap-2 group">
-            View All
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3" />
-            </svg>
-          </a>
+          <div class="flex gap-2">
+            <button id="prev-page" class="p-2.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/10 text-white transition-all disabled:opacity-30 disabled:hover:bg-white/10 disabled:cursor-not-allowed" aria-label="Previous page">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+              </svg>
+            </button>
+            <button id="next-page" class="p-2.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/10 text-white transition-all disabled:opacity-30 disabled:hover:bg-white/10 disabled:cursor-not-allowed" aria-label="Next page">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+              </svg>
+            </button>
+          </div>
         </div>
 
         <!-- Projects Grid -->
-        <!-- Projects Grid (Vision Pro) -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 overflow-y-auto pr-2 custom-scrollbar flex-1 pb-4">
-          {recentProjects.map((project) => (
-            <div class="mb-6">
+        <div id="projects-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-8 overflow-y-auto p-6 custom-scrollbar flex-1">
+          {sortedProjects.map((project, index) => (
+            <div class="project-item" data-index={index} style={index >= 8 ? "display: none;" : ""}>
               <ProjectCard 
                 title={project.data.title}
                 description={project.data.description}
                 category={project.data.category}
                 coverImage={project.data.coverImage}
                 slug={project.slug}
+                coverImagePosition={project.data.coverImagePosition}
               />
             </div>
           ))}
@@ -65,5 +83,99 @@ if (featuredProjects.length > 0) {
       </div>
     </div>
   </div>
+
+  <script>
+    document.addEventListener('astro:page-load', () => {
+      initPagination();
+    });
+
+    // Fallback for initial load
+    document.addEventListener('DOMContentLoaded', () => {
+        initPagination();
+    });
+
+    function initPagination() {
+      const items = document.querySelectorAll('.project-item');
+      if (!items.length) return;
+
+      const prevBtn = document.getElementById('prev-page');
+      const nextBtn = document.getElementById('next-page');
+      
+      // Use 1536px (Tailwind 2xl) as breakpoint
+      let itemsPerPage = window.innerWidth >= 1536 ? 8 : 6;
+      let currentPage = 0;
+      let totalPages = Math.ceil(items.length / itemsPerPage);
+
+      function updateItemsPerPage() {
+        const newItemsPerPage = window.innerWidth >= 1536 ? 8 : 6;
+        if (newItemsPerPage !== itemsPerPage) {
+          // Try to keep the first visible item roughly the same
+          const firstVisibleIndex = currentPage * itemsPerPage;
+          itemsPerPage = newItemsPerPage;
+          currentPage = Math.floor(firstVisibleIndex / itemsPerPage);
+          totalPages = Math.ceil(items.length / itemsPerPage);
+          updateDisplay();
+        }
+      }
+
+      function updateDisplay() {
+        // Ensure currentPage is valid
+        if (currentPage >= totalPages) currentPage = Math.max(0, totalPages - 1);
+
+        items.forEach((item, index) => {
+          const el = item;
+          if (index >= currentPage * itemsPerPage && index < (currentPage + 1) * itemsPerPage) {
+            el.style.display = ''; 
+            el.style.animation = 'fadeIn 0.3s ease-out';
+          } else {
+            el.style.display = 'none';
+          }
+        });
+        
+        if (prevBtn && nextBtn) {
+            prevBtn.disabled = currentPage === 0;
+            nextBtn.disabled = currentPage >= totalPages - 1;
+        }
+      }
+
+      const newPrev = prevBtn.cloneNode(true);
+      const newNext = nextBtn.cloneNode(true);
+      if (prevBtn.parentNode) {
+          prevBtn.parentNode.replaceChild(newPrev, prevBtn);
+          nextBtn.parentNode.replaceChild(newNext, nextBtn);
+      }
+      
+      newPrev.addEventListener('click', () => {
+        if (currentPage > 0) {
+          currentPage--;
+          updateDisplay();
+        }
+      });
+
+      newNext.addEventListener('click', () => {
+        if (currentPage < totalPages - 1) {
+          currentPage++;
+          updateDisplay();
+        }
+      });
+
+      // Handle resize
+      let resizeTimer;
+      window.addEventListener('resize', () => {
+        clearTimeout(resizeTimer);
+        resizeTimer = setTimeout(updateItemsPerPage, 100);
+      });
+      
+      // Initialize
+      updateDisplay();
+    }
+  </script>
+
+  <style>
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+  </style>
 
 </BaseLayout>

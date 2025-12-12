@@ -1,4 +1,4 @@
-import { config, fields, collection } from '@keystatic/core';
+import { config, fields, collection, singleton } from '@keystatic/core';
 
 export default config({
     storage: import.meta.env.PROD
@@ -18,13 +18,9 @@ export default config({
             slugField: 'title',
             path: 'src/content/projects/*',
             format: { contentField: 'content' },
-            columns: ['title', 'isFeatured', 'category'],
+            columns: ['title', 'category', 'coverImagePosition'],
             schema: {
                 title: fields.slug({ name: { label: 'Title' } }),
-                isFeatured: fields.checkbox({
-                    label: 'Highlight on Home Page',
-                    description: 'If checked, this project will be prioritized on the home page (Max 8 projects shown).'
-                }),
                 description: fields.text({ label: 'Description', multiline: true }),
                 category: fields.text({ label: 'Category' }),
                 coverImage: fields.image({
@@ -32,9 +28,46 @@ export default config({
                     directory: 'public/images/projects',
                     publicPath: '/images/projects/',
                 }),
+                coverImagePosition: fields.select({
+                    label: 'Cover Image Focus',
+                    description: 'Adjust the focal point of the cover image.',
+                    options: [
+                        { label: 'Center', value: 'center' },
+                        { label: 'Top', value: 'top' },
+                        { label: 'Bottom', value: 'bottom' },
+                        { label: 'Left', value: 'left' },
+                        { label: 'Right', value: 'right' },
+                    ],
+                    defaultValue: 'center',
+                }),
                 content: fields.mdx({
                     label: 'Content',
+                    options: {
+                        image: {
+                            directory: 'public/images/projects',
+                            publicPath: '/images/projects/',
+                        }
+                    }
                 }),
+            },
+        }),
+    },
+    singletons: {
+        homepage: singleton({
+            label: 'Homepage / Project Ordering',
+            path: 'src/content/homepage/settings',
+            schema: {
+                featuredProjects: fields.array(
+                    fields.relationship({
+                        label: 'Project',
+                        collection: 'projects',
+                    }),
+                    {
+                        label: 'Ordered Projects',
+                        itemLabel: (props) => props.value || 'Select a project',
+                        description: 'Drag and drop to reorder projects. Projects at the top appear first.',
+                    }
+                ),
             },
         }),
     },

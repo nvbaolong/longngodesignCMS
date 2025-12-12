@@ -1,11 +1,23 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
-import { getCollection } from 'astro:content';
+import { getCollection, getEntry } from 'astro:content';
 import { Image } from 'astro:assets';
 import fs from 'node:fs';
 import path from 'node:path';
 
-const allProjects = await getCollection('projects');
+const allProjectsRaw = await getCollection('projects');
+const homepageSettings = await getEntry('homepage', 'settings');
+const featuredProjects = homepageSettings?.data.featuredProjects || [];
+
+const allProjects = [...allProjectsRaw].sort((a, b) => {
+  const indexA = featuredProjects.indexOf(a.slug);
+  const indexB = featuredProjects.indexOf(b.slug);
+  if (indexA !== -1 && indexB !== -1) return indexA - indexB;
+  if (indexA !== -1) return -1;
+  if (indexB !== -1) return 1;
+  return 0;
+});
+
 const publicDir = path.join(process.cwd(), 'public');
 
 const projectsWithImages = allProjects.map(project => {
