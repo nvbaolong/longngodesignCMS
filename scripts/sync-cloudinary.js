@@ -25,12 +25,14 @@ const PROJECT_ROOT = path.join(__dirname, '..');
 const IMAGES_DIR = path.join(PROJECT_ROOT, 'public/images/projects');
 const CONTENT_DIR = path.join(PROJECT_ROOT, 'src/content/projects');
 
-async function uploadImage(filePath) {
+async function uploadImage(filePath, projectFolder) {
     try {
+        const fileName = path.basename(filePath, path.extname(filePath));
+        const publicId = `${projectFolder}/${fileName}`; // E.g. behance/coverImage
+
         const result = await cloudinary.uploader.upload(filePath, {
-            folder: 'portfolio-projects',
-            use_filename: true,
-            unique_filename: false,
+            folder: 'portfolio-projects', // Base folder
+            public_id: publicId,          // Subpath: behance/coverImage
             overwrite: true,
         });
         return result.secure_url;
@@ -41,7 +43,7 @@ async function uploadImage(filePath) {
 }
 
 async function run() {
-    console.log('🚀 Starting Cloudinary Sync...');
+    console.log('🚀 Starting Cloudinary Sync (Fixed Structure)...');
 
     // 1. Find all local images
     const imageFiles = await glob('**/*.{png,jpg,jpeg,gif,webp}', {
@@ -61,10 +63,22 @@ async function run() {
     // 2. Upload images loop
     for (const file of imageFiles) {
         const relativePath = path.relative(IMAGES_DIR, file);
-        const publicPath = `/images/projects/${relativePath}`; // The path currently used in MDX
+        // relativePath is like "behance/coverImage.png"
 
-        console.log(`Uploading: ${relativePath}...`);
-        const cloudUrl = await uploadImage(file);
+        // Extract project folder name
+        const projectFolder = path.dirname(relativePath);
+
+        // Original MDX path reference (to be replaced)
+        const publicPath = `/images/projects/${relativePath}`;
+
+        // Check if this is indeed a project file (has a parent folder)
+        if (projectFolder === '.') {
+            console.warn(`⚠️ Skipping root file: ${relativePath}`);
+            continue;
+        }
+
+        console.log(`Uploading: ${relativePath} -> portfolio-projects/${projectFolder}...`);
+        const cloudUrl = await uploadImage(file, projectFolder);
 
         if (cloudUrl) {
             urlMapping.set(publicPath, cloudUrl);
@@ -76,26 +90,49 @@ async function run() {
         }
     }
 
-    // 3. Update MDX files
+    // 3. Update MDX files (Smart Replacement)
     console.log('📝 Updating MDX content files...');
     const mdxFiles = await glob('*.mdx', { cwd: CONTENT_DIR, absolute: true });
 
     for (const mdxFile of mdxFiles) {
+        const projectSlug = path.basename(mdxFile, '.mdx'); // e.g. "behance"
         let content = fs.readFileSync(mdxFile, 'utf-8');
         let hasChanges = false;
 
-        // Replace all matching paths
-        urlMapping.forEach((newUrl, oldPath) => {
-            if (content.includes(oldPath)) {
-                // Global replace
-                content = content.replaceAll(oldPath, newUrl);
+        // Find all images belonging to this project from our map
+        const projectImages = [];
+        urlMapping.forEach((cloudUrl, localPublicPath) => {
+            // localPublicPath is like "/images/projects/behance/cover.png"
+            if (localPublicPath.includes(`/images/projects/${projectSlug}/`)) {
+                const originalFileName = path.basename(localPublicPath); // cover.png
+                const fileNameNoExt = path.parse(originalFileName).name; // cover
+                projectImages.push({
+                    nameNoExt: fileNameNoExt,
+                    newUrl: cloudUrl
+                });
+            }
+        });
+
+        if (projectImages.length === 0) continue;
+
+        // Replace in content
+        // We look for any URL that ends with the filename (ignoring extension/version variances)
+        // Common patterns: "coverImage: URL", "![alt](URL)"
+
+        projectImages.forEach(img => {
+            // Regex to find url containing the filename
+            // Matches: https://.../cover.png OR /images/.../cover.png OR .../cover.webp
+            const regex = new RegExp(`(https?:\\/\\/[^\\s\\)]+|\\/[^\\s\\)]+)\\/${img.nameNoExt}\\.(png|jpg|jpeg|webp|gif)`, 'gi');
+
+            if (regex.test(content)) {
+                content = content.replace(regex, img.newUrl);
                 hasChanges = true;
             }
         });
 
         if (hasChanges) {
             fs.writeFileSync(mdxFile, content, 'utf-8');
-            console.log(`   ✨ Updated references in ${path.basename(mdxFile)}`);
+            console.log(`   ✨ Fixed references in ${path.basename(mdxFile)}`);
         }
     }
 
