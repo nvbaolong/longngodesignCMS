@@ -58,8 +58,10 @@ const { images = [] } = Astro.props;
     /* Start centered precisely */
     transform-origin: center center;
     will-change: transform, opacity;
-    border-radius: 8px;
-    box-shadow: 0 0 15px rgba(59, 130, 246, 0.5);
+    border-radius: 20px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    box-sizing: border-box;
     /* Backface visibility hidden so they don't look weird if they flip */
     backface-visibility: hidden;
   }
@@ -151,8 +153,8 @@ const { images = [] } = Astro.props;
     }
 
     // Animation Config
-    const TOTAL_DURATION = 3000; 
-    const IMAGE_COUNT = 60; // Reduced to decrease repetition
+    const TOTAL_DURATION = 3500; 
+    const IMAGE_COUNT = 150; // Increased for density
     
     // 1. Shuffle initially
     validImages.sort(() => Math.random() - 0.5);
@@ -174,43 +176,50 @@ const { images = [] } = Astro.props;
         img.src = imgUrl;
         img.className = 'floating-image';
         
-        const width = 200 + Math.random() * 250; 
+        const width = 150 + Math.random() * 200; // Slightly smaller variation for density
 
         img.style.width = `${width}px`;
         img.style.height = 'auto'; 
         img.style.marginLeft = `-${width/2}px`;
         img.style.marginTop = `-${width/2/(16/9)}px`; 
         
+        // Vision OS floaty feel - Random slight rotation
+        const rotateX = (Math.random() - 0.5) * 20;
+        const rotateY = (Math.random() - 0.5) * 20;
+        const rotateZ = (Math.random() - 0.5) * 10;
+        
         img.style.willChange = 'transform, opacity';
 
         container.appendChild(img);
 
-        const scatterX = (Math.random() - 0.5) * window.innerWidth * 2.0; 
-        const scatterY = (Math.random() - 0.5) * window.innerHeight * 2.0;
+        const scatterX = (Math.random() - 0.5) * window.innerWidth * 2.5; 
+        const scatterY = (Math.random() - 0.5) * window.innerHeight * 2.5;
         
-        const startZ = -3000 - Math.random() * 4000; 
+        const startZ = -2000 - Math.random() * 3000; 
         
         const pathX = scatterX; 
         const pathY = scatterY;
         
         // Tighter Timing
-        const delay = Math.random() * 1000; 
-        const duration = 1200 + Math.random() * 800; 
+        const delay = Math.random() * 1500; 
+        const duration = 2000 + Math.random() * 1000; 
 
-        img.style.transform = `translate3d(${pathX}px, ${pathY}px, ${startZ}px)`;
+        // Initial state
+        img.style.transform = `translate3d(${pathX}px, ${pathY}px, ${startZ}px) rotate3d(1, 1, 1, 0deg)`;
         img.style.opacity = '0';
 
         setTimeout(() => {
-            img.style.transition = `transform ${duration}ms linear, opacity 200ms ease-in`;
+            img.style.transition = `transform ${duration}ms cubic-bezier(0.25, 0.46, 0.45, 0.94), opacity 400ms ease-in`;
             img.style.opacity = '1';
             
-            const endZ = 1200; 
-            img.style.transform = `translate3d(${pathX}px, ${pathY}px, ${endZ}px)`;
+            const endZ = 1500; 
+            // Add rotation during movement
+            img.style.transform = `translate3d(${pathX}px, ${pathY}px, ${endZ}px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) rotateZ(${rotateZ}deg)`;
 
             setTimeout(() => {
-                img.style.transition = 'opacity 100ms ease-out';
+                img.style.transition = 'opacity 200ms ease-out';
                 img.style.opacity = '0';
-            }, duration - 150);
+            }, duration - 200);
 
         }, delay);
     }
