@@ -65,9 +65,9 @@ const sortedProjects = [...allProjects].sort((a, b) => {
         </div>
 
         <!-- Projects Grid -->
-        <div id="projects-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-8 overflow-y-auto p-6 custom-scrollbar flex-1">
+        <div id="projects-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 overflow-y-auto p-6 custom-scrollbar flex-1">
           {sortedProjects.map((project, index) => (
-            <div class="project-item" data-index={index} style={index >= 8 ? "display: none;" : ""}>
+            <div class="project-item" data-index={index} style={index >= 6 ? "display: none;" : ""}>
               <ProjectCard 
                 title={project.data.title}
                 description={project.data.description}
@@ -101,13 +101,13 @@ const sortedProjects = [...allProjects].sort((a, b) => {
       const prevBtn = document.getElementById('prev-page');
       const nextBtn = document.getElementById('next-page');
       
-      // Use 1536px (Tailwind 2xl) as breakpoint
-      let itemsPerPage = window.innerWidth >= 1536 ? 8 : 6;
+      let itemsPerPage = 6;
       let currentPage = 0;
       let totalPages = Math.ceil(items.length / itemsPerPage);
 
       function updateItemsPerPage() {
-        const newItemsPerPage = window.innerWidth >= 1536 ? 8 : 6;
+        // Kept for resize listener compatibility but logic is static now
+        const newItemsPerPage = 6;
         if (newItemsPerPage !== itemsPerPage) {
           // Try to keep the first visible item roughly the same
           const firstVisibleIndex = currentPage * itemsPerPage;

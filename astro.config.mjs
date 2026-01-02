@@ -17,9 +17,9 @@ export default defineConfig({
   devToolbar: {
     enabled: false
   },
-  site: 'https://longngo.design',
+  site: 'https://longngo.work',
   image: {
-    domains: ['placehold.co', 'images.unsplash.com', 'longngo.design', 'res.cloudinary.com'],
+    domains: ['placehold.co', 'images.unsplash.com', 'longngo.design', 'longngo.work', 'res.cloudinary.com'],
   },
   vite: {
     plugins: [tailwindcss()]
