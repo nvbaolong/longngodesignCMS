@@ -66,13 +66,13 @@ const { images = [] } = Astro.props;
 </style>
 
 <script define:vars={{ images }}>
-  document.addEventListener('DOMContentLoaded', () => {
+  document.addEventListener('astro:page-load', () => {
     // 1. Elements
     const overlay = document.getElementById('intro-overlay');
     const container = document.getElementById('floating-images-container');
     const introBg = document.getElementById('intro-background');
     
-    // UI Elements to hide/show
+    // UI Elements
     const header = document.querySelector('header');
     const footer = document.querySelector('footer');
 
@@ -101,6 +101,12 @@ const { images = [] } = Astro.props;
       // Dispatch event
       window.dispatchEvent(new CustomEvent('intro-complete'));
       
+      // Fallback: Manually reveal content if event listeners fail
+      const sidebar = document.getElementById('sidebar-wrapper');
+      const content = document.getElementById('content-wrapper');
+      if (sidebar) sidebar.classList.remove('opacity-0', '-translate-x-8');
+      if (content) content.classList.remove('opacity-0', 'translate-x-8');
+      
       if (overlay) {
         overlay.style.transition = 'opacity 1s ease-out';
         overlay.style.opacity = '0';
@@ -114,7 +120,14 @@ const { images = [] } = Astro.props;
     if (sessionStorage.getItem('introShown')) {
       if (overlay) overlay.style.display = 'none';
       setUIVisibility(true);
-      // Small delay to ensure other scripts sharing DOMContentLoaded have run
+      
+      // Immediate force reveal for navigation consistency
+      const sidebar = document.getElementById('sidebar-wrapper');
+      const content = document.getElementById('content-wrapper');
+      if (sidebar) sidebar.classList.remove('opacity-0', '-translate-x-8');
+      if (content) content.classList.remove('opacity-0', 'translate-x-8');
+
+      // Still dispatch event for other listeners
       setTimeout(() => {
         window.dispatchEvent(new CustomEvent('intro-complete'));
       }, 50);
@@ -139,7 +152,7 @@ const { images = [] } = Astro.props;
 
     // Animation Config
     const TOTAL_DURATION = 3000; 
-    const IMAGE_COUNT = 100;
+    const IMAGE_COUNT = 60; // Reduced to decrease repetition
     
     // 1. Shuffle initially
     validImages.sort(() => Math.random() - 0.5);
