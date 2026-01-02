@@ -66,7 +66,7 @@ const { images = [] } = Astro.props;
 </style>
 
 <script define:vars={{ images }}>
-  (function() {
+  document.addEventListener('DOMContentLoaded', () => {
     // 1. Elements
     const overlay = document.getElementById('intro-overlay');
     const container = document.getElementById('floating-images-container');
@@ -102,18 +102,6 @@ const { images = [] } = Astro.props;
       window.dispatchEvent(new CustomEvent('intro-complete'));
       
       if (overlay) {
-        // Fade out the overlay wrapper but keep the background visible if possible?
-        // Issue: The background is INSIDE the overlay. If we fade out overlay, background goes too.
-        // But the user wants the "background ... hiện lên".
-        // Usually the page has its own background. 
-        // If the intro background is meant to transition INTO the page background seamlessly:
-        // We act as if the intro background IS the page background.
-        
-        // Since we can't easily move the DOM node, we just fade out the overlay over a longer time
-        // allowing the underlying page background (which should be identical) to show through.
-        // OR we just remove the overlay immediately if the opacity merge is perfect.
-        
-        // Let's fade out slowly.
         overlay.style.transition = 'opacity 1s ease-out';
         overlay.style.opacity = '0';
         setTimeout(() => {
@@ -126,7 +114,10 @@ const { images = [] } = Astro.props;
     if (sessionStorage.getItem('introShown')) {
       if (overlay) overlay.style.display = 'none';
       setUIVisibility(true);
-      window.dispatchEvent(new CustomEvent('intro-complete'));
+      // Small delay to ensure other scripts sharing DOMContentLoaded have run
+      setTimeout(() => {
+        window.dispatchEvent(new CustomEvent('intro-complete'));
+      }, 50);
       return;
     }
 
@@ -150,7 +141,7 @@ const { images = [] } = Astro.props;
     const TOTAL_DURATION = 3000; 
     const IMAGE_COUNT = 100;
     
-    // 1. Shuffle initially to ensure random selection if we have many projects
+    // 1. Shuffle initially
     validImages.sort(() => Math.random() - 0.5);
 
     // 2. Expand if needed
@@ -161,7 +152,7 @@ const { images = [] } = Astro.props;
     // 3. Trim to size
     validImages = validImages.slice(0, IMAGE_COUNT);
     
-    // 4. Shuffle again to mix any duplicates thoroughly
+    // 4. Shuffle again
     validImages.sort(() => Math.random() - 0.5);
 
     for (let i = 0; i < IMAGE_COUNT; i++) {
@@ -170,15 +161,13 @@ const { images = [] } = Astro.props;
         img.src = imgUrl;
         img.className = 'floating-image';
         
-        // Slightly larger for better visibility/clarity
         const width = 200 + Math.random() * 250; 
 
         img.style.width = `${width}px`;
-        img.style.height = 'auto'; // Prevent distortion
+        img.style.height = 'auto'; 
         img.style.marginLeft = `-${width/2}px`;
         img.style.marginTop = `-${width/2/(16/9)}px`; 
         
-        // Optimization for smoothness
         img.style.willChange = 'transform, opacity';
 
         container.appendChild(img);
@@ -191,18 +180,14 @@ const { images = [] } = Astro.props;
         const pathX = scatterX; 
         const pathY = scatterY;
         
-        // NO Rotation
-        // const rotX = 0, rotY = 0, rotZ = 0; // Not used, removed from original
-
         // Tighter Timing
-        const delay = Math.random() * 1000; // All start within 1s
-        const duration = 1200 + Math.random() * 800; // Faster flight (1.2 - 2.0s)
+        const delay = Math.random() * 1000; 
+        const duration = 1200 + Math.random() * 800; 
 
         img.style.transform = `translate3d(${pathX}px, ${pathY}px, ${startZ}px)`;
         img.style.opacity = '0';
 
         setTimeout(() => {
-            // Faster fade in for clarity (200ms)
             img.style.transition = `transform ${duration}ms linear, opacity 200ms ease-in`;
             img.style.opacity = '1';
             
@@ -218,7 +203,6 @@ const { images = [] } = Astro.props;
     }
 
     // REVEAL BACKGROUND (Simple Fade In)
-    // Start slightly before the end so it's fully there when UI pops
     setTimeout(() => {
         if (introBg) {
             introBg.style.transition = 'opacity 800ms ease-in-out';
@@ -229,5 +213,5 @@ const { images = [] } = Astro.props;
     // REVEAL UI
     setTimeout(finishIntro, TOTAL_DURATION);
 
-  })();
+  });
 </script>
