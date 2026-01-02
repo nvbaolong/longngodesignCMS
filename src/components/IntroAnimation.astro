@@ -1,0 +1,226 @@
+---
+import { Image } from 'astro:assets';
+import backgroundImg from '../assets/backgrounds/background.png';
+
+const { images = [] } = Astro.props;
+---
+
+<div id="intro-overlay" class="fixed inset-0 z-[99999] flex items-center justify-center overflow-hidden bg-black">
+  <!-- Starfield / Space Effect -->
+  <div class="absolute inset-0">
+    <div id="stars" class="w-full h-full opacity-50"></div>
+  </div>
+
+  <!-- Container for floating images with 3D perspective -->
+  <!-- Perspective must be on the container -->
+  <div id="floating-images-container" class="absolute inset-0 overflow-hidden" 
+       style="perspective: 1000px; transform-style: preserve-3d;">
+       <!-- Images injected here -->
+  </div>
+
+  <!-- The final background revealing -->
+  <div id="intro-background" class="absolute inset-0 opacity-0 pointer-events-none transition-opacity duration-1000 ease-out">
+      <Image 
+          src={backgroundImg} 
+          alt="Intro Background" 
+          class="w-full h-full object-cover"
+          width={1920}
+          height={1080}
+          loading="eager"
+      />
+      <!-- Matching overlay from Layout -->
+      <div class="absolute inset-0 bg-black/20 backdrop-blur-[2px]"></div>
+  </div>
+</div>
+
+<style>
+  #stars {
+    background-image: 
+        radial-gradient(1px 1px at 20px 30px, #eee, rgba(0,0,0,0)),
+        radial-gradient(1px 1px at 40px 70px, #fff, rgba(0,0,0,0)),
+        radial-gradient(1px 1px at 50px 160px, #ddd, rgba(0,0,0,0)),
+        radial-gradient(1px 1px at 90px 40px, #fff, rgba(0,0,0,0)),
+        radial-gradient(1px 1px at 130px 80px, #fff, rgba(0,0,0,0)),
+        radial-gradient(1px 1px at 160px 120px, #ddd, rgba(0,0,0,0));
+    background-size: 200px 200px;
+    animation: stars-move 100s linear infinite;
+  }
+  
+  @keyframes stars-move {
+    from { transform: translateY(0); }
+    to { transform: translateY(-200px); }
+  }
+
+  .floating-image {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    /* Start centered precisely */
+    transform-origin: center center;
+    will-change: transform, opacity;
+    border-radius: 8px;
+    box-shadow: 0 0 15px rgba(59, 130, 246, 0.5);
+    /* Backface visibility hidden so they don't look weird if they flip */
+    backface-visibility: hidden;
+  }
+</style>
+
+<script define:vars={{ images }}>
+  (function() {
+    // 1. Elements
+    const overlay = document.getElementById('intro-overlay');
+    const container = document.getElementById('floating-images-container');
+    const introBg = document.getElementById('intro-background');
+    
+    // UI Elements to hide/show
+    const header = document.querySelector('header');
+    const footer = document.querySelector('footer');
+
+    // Helper to toggle UI
+    const setUIVisibility = (visible) => {
+      const opacity = visible ? '1' : '0';
+      const pointerEvents = visible ? 'auto' : 'none';
+      
+      if (header) {
+        header.style.transition = 'opacity 0.5s ease-in-out';
+        header.style.opacity = opacity;
+        header.style.pointerEvents = pointerEvents;
+      }
+      if (footer) {
+        footer.style.transition = 'opacity 0.5s ease-in-out';
+        footer.style.opacity = opacity;
+        footer.style.pointerEvents = pointerEvents;
+      }
+    };
+
+    // 2. Logic to finish intro
+    function finishIntro() {
+      // Show UI
+      setUIVisibility(true);
+      
+      // Dispatch event
+      window.dispatchEvent(new CustomEvent('intro-complete'));
+      
+      if (overlay) {
+        // Fade out the overlay wrapper but keep the background visible if possible?
+        // Issue: The background is INSIDE the overlay. If we fade out overlay, background goes too.
+        // But the user wants the "background ... hiện lên".
+        // Usually the page has its own background. 
+        // If the intro background is meant to transition INTO the page background seamlessly:
+        // We act as if the intro background IS the page background.
+        
+        // Since we can't easily move the DOM node, we just fade out the overlay over a longer time
+        // allowing the underlying page background (which should be identical) to show through.
+        // OR we just remove the overlay immediately if the opacity merge is perfect.
+        
+        // Let's fade out slowly.
+        overlay.style.transition = 'opacity 1s ease-out';
+        overlay.style.opacity = '0';
+        setTimeout(() => {
+          overlay.remove(); 
+        }, 1000);
+      }
+    }
+
+    // 3. Check Session
+    if (sessionStorage.getItem('introShown')) {
+      if (overlay) overlay.style.display = 'none';
+      setUIVisibility(true);
+      window.dispatchEvent(new CustomEvent('intro-complete'));
+      return;
+    }
+
+    // START INTRO
+    sessionStorage.setItem('introShown', 'true');
+    setUIVisibility(false); // Hide UI initially
+    
+    // Prepare Background (Static, just hidden)
+    if (introBg) {
+        introBg.style.opacity = '0';
+        introBg.style.transform = 'none'; // No fly-in
+    }
+
+    let validImages = images.filter(img => img && !img.includes('placeholder'));
+    if (validImages.length === 0) {
+        finishIntro();
+        return;
+    }
+
+    // Animation Config
+    const TOTAL_DURATION = 3000; 
+    const IMAGE_COUNT = 100;
+    
+    // Ensure we have enough images
+    while (validImages.length < IMAGE_COUNT) {
+        validImages = validImages.concat(validImages);
+    }
+    validImages = validImages.slice(0, IMAGE_COUNT);
+    validImages.sort(() => Math.random() - 0.5);
+
+    for (let i = 0; i < IMAGE_COUNT; i++) {
+        const imgUrl = validImages[i];
+        const img = document.createElement('img');
+        img.src = imgUrl;
+        img.className = 'floating-image';
+        
+        // Slightly larger for better visibility/clarity
+        const width = 200 + Math.random() * 250; 
+
+        img.style.width = `${width}px`;
+        img.style.height = 'auto'; // Prevent distortion
+        img.style.marginLeft = `-${width/2}px`;
+        img.style.marginTop = `-${width/2/(16/9)}px`; 
+        
+        // Optimization for smoothness
+        img.style.willChange = 'transform, opacity';
+
+        container.appendChild(img);
+
+        const scatterX = (Math.random() - 0.5) * window.innerWidth * 2.0; 
+        const scatterY = (Math.random() - 0.5) * window.innerHeight * 2.0;
+        
+        const startZ = -3000 - Math.random() * 4000; 
+        
+        const pathX = scatterX; 
+        const pathY = scatterY;
+        
+        // NO Rotation
+        // const rotX = 0, rotY = 0, rotZ = 0; // Not used, removed from original
+
+        // Tighter Timing
+        const delay = Math.random() * 1000; // All start within 1s
+        const duration = 1200 + Math.random() * 800; // Faster flight (1.2 - 2.0s)
+
+        img.style.transform = `translate3d(${pathX}px, ${pathY}px, ${startZ}px)`;
+        img.style.opacity = '0';
+
+        setTimeout(() => {
+            // Faster fade in for clarity (200ms)
+            img.style.transition = `transform ${duration}ms linear, opacity 200ms ease-in`;
+            img.style.opacity = '1';
+            
+            const endZ = 1200; 
+            img.style.transform = `translate3d(${pathX}px, ${pathY}px, ${endZ}px)`;
+
+            setTimeout(() => {
+                img.style.transition = 'opacity 100ms ease-out';
+                img.style.opacity = '0';
+            }, duration - 150);
+
+        }, delay);
+    }
+
+    // REVEAL BACKGROUND (Simple Fade In)
+    // Start slightly before the end so it's fully there when UI pops
+    setTimeout(() => {
+        if (introBg) {
+            introBg.style.transition = 'opacity 800ms ease-in-out';
+            introBg.style.opacity = '1';
+        }
+    }, TOTAL_DURATION - 800); 
+
+    // REVEAL UI
+    setTimeout(finishIntro, TOTAL_DURATION);
+
+  })();
+</script>

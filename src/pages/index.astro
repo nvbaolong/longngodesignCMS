@@ -3,6 +3,7 @@
 import BaseLayout from '../layouts/BaseLayout.astro';
 import ProjectCard from '../components/ProjectCard.astro';
 import Sidebar from '../components/Sidebar.astro';
+import IntroAnimation from '../components/IntroAnimation.astro';
 import { getCollection, getEntry } from 'astro:content';
 
 const allProjects = await getCollection('projects');
@@ -34,13 +35,17 @@ const sortedProjects = [...allProjects].sort((a, b) => {
   title="Long Ngo | Product Designer" 
   description="Portfolio của Long Ngo - Product Designer chuyên giải quyết các vấn đề phức tạp bằng giao diện đơn giản."
 >
+  <!-- Intro Animation -->
+  <IntroAnimation images={sortedProjects.map(p => p.data.coverImage)} />
   
-  <div class="flex flex-col lg:flex-row gap-6 h-full">
+  <div id="main-content" class="flex flex-col lg:flex-row gap-6 h-full">
     <!-- Left Sidebar -->
-    <Sidebar />
+    <div id="sidebar-wrapper" class="opacity-0 -translate-x-8 transition-all duration-700 ease-out">
+      <Sidebar />
+    </div>
 
     <!-- Right Content Area -->
-    <div class="flex-1 min-w-0">
+    <div id="content-wrapper" class="flex-1 min-w-0 opacity-0 translate-x-8 transition-all duration-700 ease-out delay-150">
       <div class="glass-panel rounded-3xl p-8 h-full flex flex-col">
         
         <!-- Section Header -->
@@ -87,6 +92,22 @@ const sortedProjects = [...allProjects].sort((a, b) => {
   <script>
     document.addEventListener('astro:page-load', () => {
       initPagination();
+    });
+
+    // Handle Intro Complete - Staggered UI Reveal
+    window.addEventListener('intro-complete', () => {
+      const sidebar = document.getElementById('sidebar-wrapper');
+      const content = document.getElementById('content-wrapper');
+      
+      // Sidebar slides in from left
+      if (sidebar) {
+        sidebar.classList.remove('opacity-0', '-translate-x-8');
+      }
+      
+      // Content slides in from right (with slight delay via CSS)
+      if (content) {
+        content.classList.remove('opacity-0', 'translate-x-8');
+      }
     });
 
     // Fallback for initial load
