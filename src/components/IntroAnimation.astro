@@ -150,11 +150,18 @@ const { images = [] } = Astro.props;
     const TOTAL_DURATION = 3000; 
     const IMAGE_COUNT = 100;
     
-    // Ensure we have enough images
+    // 1. Shuffle initially to ensure random selection if we have many projects
+    validImages.sort(() => Math.random() - 0.5);
+
+    // 2. Expand if needed
     while (validImages.length < IMAGE_COUNT) {
         validImages = validImages.concat(validImages);
     }
+    
+    // 3. Trim to size
     validImages = validImages.slice(0, IMAGE_COUNT);
+    
+    // 4. Shuffle again to mix any duplicates thoroughly
     validImages.sort(() => Math.random() - 0.5);
 
     for (let i = 0; i < IMAGE_COUNT; i++) {
