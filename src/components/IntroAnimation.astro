@@ -1,6 +1,11 @@
 ---
 import { Image } from 'astro:assets';
-import backgroundImg from '../assets/backgrounds/background.png';
+import logoImg from '../assets/profile/logo.svg';
+
+// Dynamic import for background to avoid missing file errors
+const backgrounds = import.meta.glob('../assets/backgrounds/*.{jpeg,jpg,png,gif,webp}', { eager: true });
+const backgroundImages = Object.values(backgrounds).map((img: any) => img.default);
+const backgroundImg = backgroundImages[0] || backgroundImages[0]; // Use the first available image
 
 const { images = [] } = Astro.props;
 ---
@@ -9,6 +14,18 @@ const { images = [] } = Astro.props;
   <!-- Starfield / Space Effect -->
   <div class="absolute inset-0">
     <div id="stars" class="w-full h-full opacity-50"></div>
+  </div>
+
+  <!-- Central Brand Logo -->
+  <div id="intro-brand" class="absolute z-50 flex flex-col items-center justify-center transition-all duration-700 ease-out">
+      <div class="relative">
+          <div class="absolute inset-0 bg-blue-500/20 blur-xl rounded-full"></div>
+          <Image 
+              src={logoImg} 
+              alt="Logo" 
+              class="relative w-24 h-auto md:w-32 drop-shadow-[0_0_25px_rgba(255,255,255,0.3)]"
+          />
+      </div>
   </div>
 
   <!-- Container for floating images with 3D perspective -->
@@ -58,9 +75,18 @@ const { images = [] } = Astro.props;
     /* Start centered precisely */
     transform-origin: center center;
     will-change: transform, opacity;
-    border-radius: 20px;
-    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
-    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 12px;
+    
+    /* 3D Glassy Effect */
+    box-shadow: 
+        0 20px 50px rgba(0, 0, 0, 0.6),        /* Deep drop shadow */
+        0 4px 10px rgba(0, 0, 0, 0.3),         /* Closer shadow */
+        inset 0 1px 0 rgba(255, 255, 255, 0.4), /* Top inner highlight */
+        inset 0 -1px 0 rgba(0, 0, 0, 0.3);      /* Bottom inner shadow */
+        
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    background-color: rgba(30, 30, 30, 0.8); /* Fallback */
+    
     box-sizing: border-box;
     /* Backface visibility hidden so they don't look weird if they flip */
     backface-visibility: hidden;
@@ -73,6 +99,7 @@ const { images = [] } = Astro.props;
     const overlay = document.getElementById('intro-overlay');
     const container = document.getElementById('floating-images-container');
     const introBg = document.getElementById('intro-background');
+    const introBrand = document.getElementById('intro-brand');
     
     // UI Elements
     const header = document.querySelector('header');
@@ -226,6 +253,12 @@ const { images = [] } = Astro.props;
 
     // REVEAL BACKGROUND (Simple Fade In)
     setTimeout(() => {
+        // Fade out Brand slightly before bg
+        if (introBrand) {
+            introBrand.style.opacity = '0';
+            introBrand.style.transform = 'scale(1.1) blur(10px)'; // Disappear effect
+        }
+
         if (introBg) {
             introBg.style.transition = 'opacity 800ms ease-in-out';
             introBg.style.opacity = '1';

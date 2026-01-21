@@ -41,6 +41,7 @@ const containerClass = {
 }[alignment];
 
 const { Content } = await entry.render();
+import Video from '../../components/mdx/Video.astro';
 ---
 
 <BaseLayout title={entry.data.title} description={entry.data.description}>
@@ -74,8 +75,8 @@ const { Content } = await entry.render();
               <p class="text-lg md:text-xl text-white/85 mt-4 leading-relaxed">{entry.data.description}</p>
           </div>
           
-          <div class="prose prose-lg prose-invert max-w-none prose-img:rounded-2xl prose-headings:font-display prose-a:text-blue-400">
-            <Content />
+          <div class="prose prose-lg prose-invert max-w-none prose-headings:font-display prose-a:text-blue-400">
+            <Content components={{ VideoPlayer: Video }} />
           </div>
 
           <!-- Project Navigation -->
@@ -117,4 +118,14 @@ const { Content } = await entry.render();
       </div>
     </div>
   </div>
+
+  <style is:global>
+    /* Force spacing and 4px border radius between images in the project content */
+    .prose img {
+      margin-top: 1.5rem !important;
+      margin-bottom: 1.5rem !important;
+      display: block;
+      border-radius: 4px !important;
+    }
+  </style>
 </BaseLayout>

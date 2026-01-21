@@ -1,4 +1,5 @@
 import { config, fields, collection, singleton } from '@keystatic/core';
+import { block } from '@keystatic/core/content-components';
 
 export default config({
     storage: import.meta.env.PROD
@@ -57,6 +58,23 @@ export default config({
                             directory: 'public/images/projects',
                             publicPath: '/images/projects/',
                         }
+                    },
+                    components: {
+                        VideoPlayer: block({
+                            label: 'Video',
+                            schema: {
+                                src: fields.file({
+                                    label: 'Video File',
+                                    directory: 'public/videos/projects',
+                                    publicPath: '/videos/projects/',
+                                }),
+                                caption: fields.text({ label: 'Caption' }),
+                                autoplay: fields.checkbox({ label: 'Autoplay', defaultValue: true }),
+                                loop: fields.checkbox({ label: 'Loop', defaultValue: true }),
+                                muted: fields.checkbox({ label: 'Muted', defaultValue: true }),
+                                controls: fields.checkbox({ label: 'Show Controls', defaultValue: false }),
+                            },
+                        }),
                     }
                 }),
             },
